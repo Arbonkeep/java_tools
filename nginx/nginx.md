@@ -97,11 +97,11 @@
  
         <3> 在nginx的nginx.conf中配置请求转发
 
-<img src="./img/image01.png" width = 800px>
+<img src="./img/image01.png" width = 1000px>
 
         <4> 在windows浏览器中访问www.abc123.com，如下所示
 
-<img src="./img/image02.png" width = 800px>
+<img src="./img/image02.png" width = 1000px>
 
 ### 反向代理服务器2
 
@@ -115,33 +115,33 @@
         <1> 开启两个tomcat，一个端口为8081，一个端口8082
             1) 首先在/usr/local下复制两个tomcat，重命名为tomcat8081和tomcat8082
 
-<img src="./img/image03.png" width = 800px>
+<img src="./img/image03.png" width = 1000px>
 
             2) 将tomcat8082的端口号修改
                 * cd tomcat8082/conf
 
                 * 编辑 vim server.xml
 
-<img src="./img/image04.png" width = 800px>
+<img src="./img/image04.png" width = 1000px>
 
-<img src="./img/image05.png" width = 800px>
+<img src="./img/image05.png" width = 1000px>
 
-<img src="./img/image06.png" width = 800px>
+<img src="./img/image06.png" width = 1000px>
 
                 * 按照上面步骤可以将8081的端口信息也进行修改
             
             3) 启动tomcat8082即可(注意需要将防火墙对应的端口8082打开)
 
-<img src="./img/image07.png" width = 800px>
+<img src="./img/image07.png" width = 1000px>
 
             4) 同样的，启动8081(注意需要将防火墙对应的端口8081打开)
 
-<img src="./img/image08.png" width = 800px>
+<img src="./img/image08.png" width = 1000px>
 
         <2> 准备相关目录资源文件
             1) 进入到8081中的webapp,创建tomcat文件夹，并在该文件夹下创建a.html文件
 
-<img src="./img/image09.png" width = 800px>    
+<img src="./img/image09.png" width = 1000px>    
 
             2) 进入到8082中的webapp,创建image文件夹，并在该文件夹下创建b.html文件
 
@@ -150,7 +150,7 @@
 
             2) 进行相关配置
 
-<img src="./img/image10.png" width = 800px> 
+<img src="./img/image10.png" width = 1000px> 
 
         <4> 需要开放我们使用的端口9001，并重新启动nginx
             * firewall-cmd --add-port=9001/tcp --permanent
@@ -160,9 +160,9 @@
             http://192.168.43.129:9001/tomcat/a.html
             http://192.168.43.129:9001/image/b.html
 
-<img src="./img/image11.png" width = 800px> 
+<img src="./img/image11.png" width = 1000px> 
 
-<img src="./img/image12.png" width = 800px> 
+<img src="./img/image12.png" width = 1000px> 
 
 
 ### 负载均衡服务搭建
