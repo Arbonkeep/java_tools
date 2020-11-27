@@ -76,7 +76,24 @@
 
                 注意：如果 uri 包含正则表达式，则必须要有 ~ 或者 ~* 标识。
 
+    2. 负载均衡的分配策略
+        <1> 轮询（默认）
+            每个请求按时间顺序逐一分配到不同的后端服务器，如果后端服务器 down 掉，能自动剔除。
+        <2> weight
+            weight 代表权重默认为 1,权重越高被分配的客户端越多
 
+        <3> ip_hash
+            每个请求按访问 ip 的 hash 结果分配，这样每个访客固定访问一个后端服务器，可以解决 session 的问题
+
+        <4> fair（第三方）
+            按后端服务器的响应时间来分配请求，响应时间短的优先分配。
+
+    3. 动静分离
+        Nginx 动静分离简单来说就是把动态跟静态请求分开，不能理解成只是单纯的把动态页面和静态页面物理分离。严格意义上说应该
+        是动态请求跟静态请求分开，可以理解成使用 Nginx处理静态页面，Tomcat 处理动态页面。动静分离从目前实现角度来讲大致分
+        为两种，一种是纯粹把静态文件独立成单独的域名，放在独立的服务器上，也是目前主流推崇的方案；另外一种方法就是动态跟静
+        态文件混合在一起发布，通过 nginx 来分开。
+        
 ## Nginx实现相关配置
 
 ### Nginx配置访问tomcat服务器(反向代理服务器1)
@@ -171,7 +188,154 @@
         平均到8081和8082中
 
     2. 配置实现
+        <1> 准备工作：
+            1) 准备两台tomcat，tomcat8081和tomcat8082，并分别在他们的webapp下创建tomcat文件夹，在该文件夹内创建a.html
+
+        <2> 修改nginx的配置文件
+
+<img src="./img/image14.png" width = 1000px> 
+
+```
+http {
+
+    upstream myserver {
+        server 192.168.43.129:8081;
+        server 192.168.43.129:8082;
+    }
+
+    server {
+        listen       80;
+        server_name  192.168.43.129;
+
+        location / {
+                proxy_pass http://myserver;
+                root html;
+                index  index.html index.htm;
+
+        }
+
+
+```
+        <3> 启动nginx查看效果
+
+            1) 浏览器访问：http:192.168.43.129:80/tomcat/a.html,不断刷新页面，会出现访问到不同服务器的结果，如下：
+
+<img src="./img/image15.png" width = 1000px>
+
+<img src="./img/image16.png" width = 1000px>
+
+            2) 总结：此配置默认使用负载均衡的策略是轮询，即默认的负载均衡策略
+
+    3. 其他形式的策略的实现
+
+        <1> weight权重
+            此时，权重为10的被访问的次数将多于权重为5的
+
+```
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+
+    sendfile        on;
+
+    keepalive_timeout  65;
+
+    upstream myserver {
+
+        server 192.168.43.129:8081 weight = 5;
+        server 192.168.43.129:8082 weight = 10;
+    }
+
+    server {
+        listen       80;
+        server_name  192.168.43.129;
+
+        location / {
+                proxy_pass http://myserver;
+                root html;
+                index  index.html index.htm;
+
+        }
         
+
+```
+        <2> ip_hash
+            此种方式访问，只要第一次访问的是指定的服务器，以后一直都是访问该服务器，如首先访问8081，那么以后一直访问8081
+            这是根据ip地址的hash值来访问的
+
+```
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+
+    sendfile        on;
+
+    keepalive_timeout  65;
+
+    upstream myserver {
+        ip_hash;
+        server 192.168.43.129:8081;
+        server 192.168.43.129:8082;
+    }
+
+    server {
+        listen       80;
+        server_name  192.168.43.129;
+
+        location / {
+                proxy_pass http://myserver;
+                root html;
+                index  index.html index.htm;
+
+        }
+
+```
+
+        <3> fair方式
+            此种方式就是说，当请求服务器时，哪个先响应，就访问哪个，即相应时间最短
+
+```
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+
+    sendfile        on;
+
+    keepalive_timeout  65;
+
+    upstream myserver {
+        server 192.168.43.129:8081;
+        server 192.168.43.129:8082;
+        fair;
+    }
+
+    server {
+        listen       80;
+        server_name  192.168.43.129;
+
+        location / {
+                proxy_pass http://myserver;
+                root html;
+                index  index.html index.htm;
+
+        }
+
+```
+
+### 配置动静分离
+    1. 配置准备工作
+        <1> 首先，在根目录创建一个文件夹data，data下创建两个文件夹一个为image(存放图片静态资源)，一个为tomcat存放动态资源
+            这里我们使用一个html当做动态资源
+
+        <2> 实现效果：我们使用浏览器访问服务器80端口，实现访问动态资源与静态资源的分离(即通过nginx访问)
+
+    2. 实现配置
+        <1> 配置nginx的配置文件
+
+
 
 
            
@@ -190,8 +354,7 @@
 
     1. 配置文件主要分为三个部分
         <1> 全局块（从第一行到到events块）之间的内容。
-            * 主要会设置一些影响 nginx 服务器整体运行的配置指令，主要包括配置运行 Nginx 服务器的用户（组）、允许生成worker
-              process 数，进程 PID 存放路径、日志存放路径和类型以及配置文件的引入等
+            * 主要会设置一些影响 nginx 服务器整体运行的配置指令，主要包括配置运行 Nginx 服务器的用户（组）、允许生成worker process 数，进程 PID 存放路径、日志存放路径和类型以及配置文件的引入等
 
         <2> events块
             * events 块涉及的指令主要影响 Nginx 服务器与用户的网络连接，常用的设置包括是否开启对多 work process下的网络连
